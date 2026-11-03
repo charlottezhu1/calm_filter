@@ -1,57 +1,45 @@
-AMI: An Affect Mix Index tool for monitoring social media sentiment
-===========
-The AMI plugin enables social media users to measure and analyze the affective content of any source (currently on twitter.com).
+Calm Filter: a Chrome extension for X (twitter.com) that scores post affect in your feed.
+
+What it does
+------------
+- Scores the affect of each post in your feed.
+- Shows the affect distribution of the posts you've seen, as a color bar with emoji and percentages.
+- Hides high-arousal negative (HAN) posts.
 
 How it works
 ------------
-AMI works by reading in each post and then scoring each word in the tweet with a positive or negative integer based on this dictionary (https://github.com/soops/sentimood). Then based on the sum of all the words in the post, AMI labels each post as primarily containing one of five affective categories: High Arousal Negative (HAN), Low Arousal Negative (LAN), Neutral (NEU), Low Arousal Positive (LAP), or High Arousal Positive (HAP).
+Each post is scored with SentiStrength (Thelwall et al. 2010), re-implemented in JavaScript (`sentistrength.js`) so it runs in the page with no server. It returns a positive score (1 to 5) and a negative score (-1 to -5), using its word list plus rules for negation, booster words, emoticons, repeated letters and "!". The two scores are mapped to categories (a post can fall in more than one):
 
-Currently, the plugin only works on the Chrome browser (stay tuned for a Safari update).
+- High Arousal Negative (HAN)
+- Low Arousal Negative (LAN)
+- Neutral (NEU)
+- Low Arousal Positive (LAP)
+- High Arousal Positive (HAP)
 
-You do not need a twitter account for this to work.
-If you don't have an account, you can go here: https://twitter.com/explore
+Cutoffs, as in the original paper: HAN = negative score of -3 or lower; LAN = -2; HAP = positive score of 3 or higher; LAP = 2; NEU = positive 1 and negative -1.
 
-The AMI plugin will overlay a continuously updated graphic on twitter's User Interface to show you the affective breakdown of the current twitter stream. (future versions may code different adaptive display options)
+`sentistrength.js` is a port of the SentiStrength Java code with its default English settings, and matches the Java jar's output exactly on 100,000+ test strings (`tools/diff_vs_java.js`). `sentistrength_data.js` holds the SentiStrength English word lists (October 2019 release, folder `third_party/SentiStrength/`), packed by `tools/build_ss_data.js`. SentiStrength and its word lists are free for academic, non-commercial use only; check the licence before sharing this extension more widely.
 
-Every time you visit a different feed or page on twitter you must reload the page so that the AMI graphic can refresh with an accurate count of that page's affective content. (future versions may include an automatic page refresh)
+Switches
+--------
+Click the Calm Filter icon to open the switches. Changes apply immediately.
+
+- **Hide HAN posts**: hides HAN posts. Turning it off shows them again.
+- **Color post borders**: colors each post's border by category. HAN posts show red when they're not hidden.
+- **Affect distribution**: shows or hides the distribution bar. The bar counts every post scored, including hidden ones.
+
+All three are on by default.
 
 Installation
 ------------
-First download and unzip the folder
-<img width="1080" alt="ami_dwnld_instr" src="https://user-images.githubusercontent.com/1163119/189460856-3e9f0923-c62c-4c38-bbde-3e7da87ba390.png">
+1. Download and unzip the folder.
+2. Open Chrome and go to `chrome://extensions`.
+3. Turn on **Developer mode** in the upper right corner.
+4. Click **Load unpacked** and select the `chrome_extension` folder.
+5. Confirm that Calm Filter appears in the list and is enabled.
+6. Open x.com. The distribution bar appears near the compose button.
 
-Then...
-
-Mac:
-Open Chrome
-Go to Window --> Extensions
-<img width="804" alt="ami_chome_ext" src="https://user-images.githubusercontent.com/1163119/189463233-ceb34315-1647-4036-aa03-c8596155249e.png">
-
-
-
-Toggle on "Developer Mode" on the upper right corner
-Click "Load Unpacked"
-<img width="674" alt="ami_dev_mode" src="https://user-images.githubusercontent.com/1163119/189463352-c370808f-66f4-4a07-905c-e43f59e7e01d.png">
-
-
-
-Navigate to the where you saved the folder, click on it
-Click Select
-<img width="676" alt="ami_select_ext" src="https://user-images.githubusercontent.com/1163119/189463647-ad370633-82ad-4b5b-93ff-6ee2b9139db7.png">
-
-
-
-Check to make sure you can see the extension is installed
-<img width="674" alt="ami_check_install" src="https://user-images.githubusercontent.com/1163119/189463835-6d428702-f4a9-4a47-9d3f-b6b97434d347.png">
-
-
-
-
-Windows:
-Open Chrome
-Go to Extension icon on upper right (looks like a puzzle piece type thing right next to the URL box) —> Manage Extensions
-Toggle on "Developer Mode" on the upper right corner
-Click "Load Unpacked"
-Navigate to the where you saved the folder, click on it
-Click Select
-Check to make sure you can see the extension is installed
+Limitations
+-----------
+- Works only on Chrome, and only on x.com and twitter.com.
+- Scores are computed for the posts you've scrolled past during the current page visit. Reloading the page starts the count over.

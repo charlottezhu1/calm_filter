@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
-    "name": "AMI",
-    "description": "Affect Mix Index",
+    "name": "Calm Filter",
+    "description": "Scores the affect of posts in your feed, shows the affect distribution, and hides high-arousal negative posts.",
     "version": "1.0",
     "icons": {
         "16": "icon/image16.png",
@@ -11,11 +11,10 @@
         "128": "icon/image128.png"
     },
 
-    "permissions": ["tabs", "storage"],
+    "permissions": ["storage"],
     "host_permissions": [
         "*://*.twitter.com/*",
-        "*://*.x.com/*",
-        "http://localhost:5050/*"
+        "*://*.x.com/*"
     ],
 
     "content_scripts": [
@@ -25,17 +24,15 @@
                 "*://*.x.com/*"
             ],
             "js": [
-                "sentiment.js",
-                "vader.js",
+                "sentistrength_data.js",
+                "sentistrength.js",
                 "content.js"
             ],
             "run_at": "document_end"
         }
     ],
-    "background": {
-        "service_worker": "background.js"
-    },
     "action": {
-        "default_icon": "icon/image128.png"
+        "default_icon": "icon/image128.png",
+        "default_popup": "settings.html"
     }
 }

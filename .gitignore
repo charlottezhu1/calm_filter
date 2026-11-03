@@ -2,3 +2,10 @@ backend/venv/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Study data and generated analysis output (large; participant post text)
+analysis/tests/**/*.csv
+analysis/tests/**/*.html
+*.zip
+
+CLAUDE.md

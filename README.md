@@ -1,8 +1,8 @@
-# AMI — Affect Mix Index
+# Calm Filter (AMI)
 
-AMI is a Chrome extension that shows the emotional ("affective") makeup of the posts on a Twitter/X page. It scores every tweet it sees, outlines each tweet with a color for its category, and draws a live bar chart of the mix in the page's side navigation.
+A Chrome extension that scores the affect of each post in your X (twitter.com) feed, shows the mix of affect you have seen, and can hide high-arousal negative posts. Scoring uses a JavaScript port of [SentiStrength](http://sentistrength.wlv.ac.uk/) and runs entirely in your browser. The extension makes no network requests.
 
-Each tweet is placed in one of five categories:
+Each post is placed in one or more of five categories:
 
 | Code | Meaning |
 |------|---------|
@@ -12,42 +12,33 @@ Each tweet is placed in one of five categories:
 | LAP | Low Arousal Positive |
 | HAP | High Arousal Positive |
 
+## Install
+
+1. Download this repository (green *Code* button, then *Download ZIP*) and unzip it.
+2. In Chrome, go to `chrome://extensions` and turn on *Developer mode*.
+3. Click *Load unpacked* and select the `chrome_extension/` folder.
+4. Open [x.com](https://x.com). The distribution bar appears near the compose button.
+
+Click the Calm Filter icon to turn on or off hiding HAN posts, border colors, and the distribution bar. See [chrome_extension/README.md](chrome_extension/README.md) for how the scoring works.
+
+## Verify the scorer
+
+The JavaScript scorer matches the original Java SentiStrength. To check it yourself (needs Node.js and Java):
+
+```bash
+node tools/diff_vs_java.js fuzz 20000
+```
+
 ## Repository layout
 
 ```
-ami_plugin/
-├── chrome_extension/   Manifest V3 extension (content script, background worker, AFINN lexicon)
-└── backend/            Optional local server: Flask + py4j bridge to the Java SentiStrength library
+chrome_extension/   the extension (this is all you need to use it)
+tools/              scripts that build the scorer's data and check it against the Java version
+third_party/        SentiStrength English word lists (October 2019)
+analysis/           analysis scripts and checks against study data (data not included)
+backend/            older local server, no longer used by the extension
 ```
 
-## How it works
+## License
 
-```
- twitter.com / x.com page
-   content.js ── MutationObserver finds [data-testid='tweet'] nodes as you scroll
-      │
-      ├─► AFINN engine (sentiment.js, runs in the page, no network)
-      │
-      └─► chrome.runtime message ─► background.js ─► POST http://localhost:5050/analyze
-                                                       │
-                                  backend/app.py (Flask) ─ py4j ─► SentiStrengthService (Java, port 25333)
-```
-
-- **Two engines run on every tweet.** AFINN is built into the extension. SentiStrength is optional and needs the local backend. A dropdown in the chart switches which engine's counts and tweet borders are shown. The choice is saved in `chrome.storage.local`, and the two engines' counts are kept separate.
-- **Classification** is done in `content.js`: `classifyAffect` for AFINN and `classifySentiStrengthAffect` for SentiStrength, each with its own thresholds. The backend only returns raw positive and negative scores.
-- **Export:** clicking the extension's toolbar icon downloads two `.txt` files. One has the category counts and the other has the tweet text, both named after the current page.
-
-## Quick start
-
-1. **Extension (AFINN only):** open `chrome://extensions`, turn on *Developer mode*, click *Load unpacked*, and select the `chrome_extension/` folder. Then open [twitter.com](https://twitter.com) or x.com. No account is needed. Reload the page when you move to a new feed so the chart restarts.
-2. **SentiStrength (optional):** start the backend as described in [backend/README.md](backend/README.md), then pick *SentiStrength (local server)* in the chart dropdown.
-
-See [chrome_extension/README.md](chrome_extension/README.md) for the screenshot-based install guide.
-
-## Notes
-
-- Supported sites are `*.twitter.com` and `*.x.com`. The tweet selectors depend on Twitter's current DOM and may break when it changes.
-- The extension is written for Chrome only.
-- Some leftovers from earlier versions remain in `chrome_extension/`. `main.html` and `popup.js` are an old demo pop-up titled "CALMFilter", and `badge.js` is a stub. The manifest does not use any of them.
-- `backend/venv/` is a local virtualenv, not project source, and the repo has no `.gitignore` for it yet.
-- The git status shows the old top-level extension files as deleted. The same files now live in `chrome_extension/`.
+SentiStrength and its word lists are free for academic, non-commercial use only. Check the licence before sharing the extension more widely.

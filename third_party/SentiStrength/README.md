@@ -4,4 +4,3 @@ The SentiStrength English data folder, October 2019 release (Thelwall et al., 20
 
 SentiStrength and its word lists are free for academic, non-commercial use only. See http://sentistrength.wlv.ac.uk/ for the licence terms.
 
-Note: `backend/py4j/en/` holds a different version of the lists (its `SentimentLookupTable.txt` differs).

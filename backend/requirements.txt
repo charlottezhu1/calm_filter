@@ -1,4 +1,0 @@
-flask
-flask_cors
-# Must match backend/py4j/libs/py4j-0.10.9.9.jar
-py4j==0.10.9.9

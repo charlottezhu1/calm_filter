@@ -3,7 +3,7 @@
  *
  * Port of the scoring classes in uk.ac.wlv.sentistrength (Sentence, Term,
  * Paragraph, and the word-list loaders), with the options fixed at the
- * defaults used by backend/py4j SentiStrengthService. Features that are
+ * defaults of the SentiStrength Java program. Features that are
  * off by default (keywords, lemmatisation, trinary/scale/average/total
  * modes, object-evaluation table, question handling, capitals boost,
  * negation after sentiment) are not ported.

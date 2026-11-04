@@ -7,7 +7,7 @@ LAP tweets were those that received a SentiStrength positivity score of 2; HAP t
 
 1. Call the english version of sentistrength, rebuild the boundary based on the
 above paragraph.
-/Users/xuyangzhu/Desktop/ami_plugin/backend/py4j/en
+/Users/xuyangzhu/Desktop/ami_plugin/third_party/SentiStrength
 Test and verify the boundary with the test data in the file below.
 /Users/xuyangzhu/Desktop/ami_plugin/analysis/tests/posts_sentis_text_anon.csv
 (you can segment the first 100 rows for the quick test.)

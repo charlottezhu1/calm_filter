@@ -1,9 +1,8 @@
 """
-Compares two SentiStrength word lists, both run through the JS port, against the CSV.
+Compares the SentiStrength word lists, run through the JS port, against the CSV.
 
   python3 compare_versions.py [max_rows]
 
-  backend : backend/py4j/en/
   oct2019 : third_party/SentiStrength/
 
 The CSV (posts_sentis_text_anon.csv) is the ground truth, grouped by its `study` column:
@@ -27,7 +26,6 @@ TESTS = HERE.parents[1]
 ROOT = TESTS.parent.parent
 CSV_PATH = TESTS / "posts_sentis_text_anon.csv"
 WORD_LISTS = {
-    "backend": ROOT / "backend" / "py4j" / "en",
     "oct2019": ROOT / "third_party" / "SentiStrength",
 }
 LABELS = ["HAN", "LAN", "HAP", "LAP", "NEU"]

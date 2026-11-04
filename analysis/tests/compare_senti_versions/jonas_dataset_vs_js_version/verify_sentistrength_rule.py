@@ -1,7 +1,7 @@
-"""Check that local SentiStrength + the paper rule (backend/affect.py)
+"""Check that local SentiStrength + the paper rule (affect.py)
 reproduces the HAN/LAN/HAP/LAP/NEU labels in posts_sentis_text_anon.csv.
 
-Runs backend/py4j/libs/SentiStrength.jar with backend/py4j/en/ over the CSV
+Runs third_party/SentiStrength.jar with third_party/SentiStrength/ over the CSV
 texts, applies classify_affect to the scores, and compares with the label
 columns. The CSV's own ss_pos/ss_neg columns are also scored for reference.
 
@@ -17,14 +17,14 @@ import tempfile
 from collections import Counter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-BACKEND = os.path.join(HERE, '..', '..', '..', '..', 'backend')
-sys.path.insert(0, BACKEND)
+THIRD_PARTY = os.path.join(HERE, '..', '..', '..', '..', 'third_party')
+sys.path.insert(0, HERE)
 from affect import CLASSES, classify_affect  # noqa: E402
 
 ap = argparse.ArgumentParser()
 ap.add_argument('--csv', default=os.path.join(HERE, '..', '..', 'posts_sentis_text_anon.csv'))
-ap.add_argument('--jar', default=os.path.join(BACKEND, 'py4j', 'libs', 'SentiStrength.jar'))
-ap.add_argument('--data', default=os.path.join(BACKEND, 'py4j', 'en') + os.sep)
+ap.add_argument('--jar', default=os.path.join(THIRD_PARTY, 'SentiStrength.jar'))
+ap.add_argument('--data', default=os.path.join(THIRD_PARTY, 'SentiStrength') + os.sep)
 ap.add_argument('--limit', type=int, default=0, help='score only the first N rows (0 = all)')
 ap.add_argument('--out', default=None, help='directory for the jar input/output files')
 args = ap.parse_args()

@@ -1,4 +1,4 @@
-# Calm Filter (AMI)
+# Calm Filter
 
 A Chrome extension that scores the affect of each post in your X (twitter.com) feed, shows the mix of affect you have seen, and can hide high-arousal negative posts. Scoring uses a JavaScript port of [SentiStrength](http://sentistrength.wlv.ac.uk/) and runs entirely in your browser. The extension makes no network requests.
 
@@ -36,7 +36,6 @@ chrome_extension/   the extension (this is all you need to use it)
 tools/              scripts that build the scorer's data and check it against the Java version
 third_party/        SentiStrength English word lists (October 2019)
 analysis/           analysis scripts and checks against study data (data not included)
-backend/            older local server, no longer used by the extension
 ```
 
 ## License

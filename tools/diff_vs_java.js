@@ -10,7 +10,7 @@ const { spawnSync } = require('child_process');
 const { createScorer } = require('../chrome_extension/sentistrength.js');
 const data = require(process.env.SS_DATA ? path.resolve(process.env.SS_DATA) : '../chrome_extension/sentistrength_data.js');
 
-const JAR = path.join(__dirname, '..', 'backend', 'py4j', 'libs', 'SentiStrength.jar');
+const JAR = path.join(__dirname, '..', 'third_party', 'SentiStrength.jar');
 const EN = (process.env.SS_EN ? path.resolve(process.env.SS_EN) : path.join(__dirname, '..', 'third_party', 'SentiStrength')) + '/';
 const work = fs.mkdtempSync(path.join(os.tmpdir(), 'ssdiff-'));
 

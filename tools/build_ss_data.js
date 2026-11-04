@@ -1,7 +1,7 @@
 // Packs a SentiStrength word-list folder into a JS data file for sentistrength.js.
 // Default: third_party/SentiStrength -> chrome_extension/sentistrength_data.js (what the extension ships with).
-// Another word-list folder, e.g. backend/py4j/en, can be given instead:
-//   node tools/build_ss_data.js backend/py4j/en /tmp/data_backend.js
+// Another word-list folder can be given instead:
+//   node tools/build_ss_data.js path/to/word_lists /tmp/data_other.js
 // Usage: node build_ss_data.js [wordListDir] [outFile]
 const fs = require('fs');
 const path = require('path');

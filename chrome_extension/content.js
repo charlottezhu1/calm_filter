@@ -142,6 +142,7 @@ function drawHrzBarPlot( data, colors){
     createdHrzBarPlot = true;
   }
   document.getElementById('box_chart_title').textContent = `Affect Distribution (n=${numTweets})`;
+  if (Site.refreshChart) Site.refreshChart(document.getElementById('box_chart_id'));
 
   var canvas = document.getElementById("pieChartId");
   var context = canvas.getContext('2d');

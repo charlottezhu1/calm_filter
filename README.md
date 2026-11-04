@@ -18,7 +18,7 @@ Each post is placed in one or more of five categories:
 2. Load the `chrome_extension/` folder:
    - **Chrome or Edge:** go to `chrome://extensions` (or `edge://extensions`), turn on *Developer mode*, click *Load unpacked*, and select the folder.
    - **Firefox (140 or newer):** go to `about:debugging#/runtime/this-firefox`, click *Load Temporary Add-on*, and select `manifest.json` in the folder. It stays until Firefox restarts.
-3. Open [x.com](https://x.com) or [bsky.app](https://bsky.app). On X the distribution bar appears near the compose button; on Bluesky it appears in the bottom-right corner.
+3. Open [x.com](https://x.com) or [bsky.app](https://bsky.app). On X the distribution bar appears near the compose button; on Bluesky it appears under the New post button (in the bottom-right corner on narrow screens).
 
 Click the Calm Filter icon to turn on or off hiding HAN posts, border colors, and the distribution bar. See [chrome_extension/README.md](chrome_extension/README.md) for how the scoring works.
 

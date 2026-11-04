@@ -36,7 +36,7 @@ Installation
 2. Chrome or Edge: go to `chrome://extensions` (or `edge://extensions`), turn on **Developer mode** in the upper right corner, click **Load unpacked** and select the `chrome_extension` folder.
    Firefox (140 or newer): go to `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on** and select `manifest.json` in the folder. It stays until Firefox restarts.
 3. Confirm that Calm Filter appears in the list and is enabled.
-4. Open x.com or bsky.app. On X the distribution bar appears near the compose button; on Bluesky it appears under the New post button (in the bottom-right corner on narrow screens).
+4. Open x.com or bsky.app. The distribution bar appears under the Post (X) or New post (Bluesky) button, and moves to the bottom-right corner when the window is too narrow.
 
 Limitations
 -----------

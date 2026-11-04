@@ -6,8 +6,9 @@ var observer = new MutationObserver(function(mutations, observer) {
     runCALM();
 });
 
-// Site-specific parts (post selector, text, id, chart placement) come from
-// CalmFilterSite, defined by the sites/*.js script loaded before this one.
+// Site-specific parts (post selector, text selector, post id, and the button the
+// chart goes under) come from CalmFilterSite, defined by the sites/*.js script
+// loaded before this one.
 var Site = CalmFilterSite;
 
 var settings = { filterHan: true, showColors: true, showChart: true };
@@ -29,6 +30,10 @@ chrome.storage.onChanged.addListener(function(changes, area) {
   } else if (box) {
     box.style.display = 'none';
   }
+});
+window.addEventListener('resize', function() {
+  var box = document.getElementById('box_chart_id');
+  if (box) mountChart(box);
 });
 //////////////////////////////////////////////////////////////////////////////
 var tweetSentiment = {};
@@ -95,7 +100,7 @@ function runCALM() {
 
     for (var i = 0; i < items.length; i++) {   // for each item box
         var item = items[i];
-        var itemText = Site.getText(item);
+        var itemText = item.querySelector(Site.textSelector)?.innerText;
         var itemId = Site.getId(item);
         if (!itemId || !itemText) {
           if (!skipped.has(item)) {
@@ -117,6 +122,48 @@ function runCALM() {
 }
 //////////////////////////////////////////////////////////////////////////////
 
+var NAV_MIN_WIDTH = 160;   // narrower left columns (icon-only menus) cannot hold the bar
+
+// Under the Post / New post button when the left navigation is wide enough,
+// otherwise in the bottom-right corner. Safe to call again after a resize.
+function mountChart(box) {
+  if (!document.body) return false;
+  var s = box.style;
+  ['position', 'right', 'bottom', 'padding', 'zIndex', 'background', 'borderRadius',
+   'width', 'maxWidth', 'marginTop'].forEach(function(p) { s[p] = ''; });
+  var anchor = Site.chartAnchor();
+  var column = anchor && anchor.parentElement;
+  if (column && column.getBoundingClientRect().width >= NAV_MIN_WIDTH &&
+      getComputedStyle(anchor).position !== 'fixed') {
+    s.width = '100%';
+    s.maxWidth = '225px';
+    s.marginTop = '12px';
+    column.appendChild(box);
+  } else {
+    s.position = 'fixed';
+    s.right = '16px';
+    s.bottom = '16px';
+    s.padding = '4px 8px 8px';
+    s.zIndex = '9999';
+    s.background = 'rgba(128, 128, 128, 0.2)';
+    s.borderRadius = '8px';
+    document.body.appendChild(box);
+  }
+  return true;
+}
+
+// Same look on every site: the page's own text color (follows light or dark
+// theme), and the canvas kept inside its column.
+function styleChart(box) {
+  var sample = document.querySelector(Site.textSelector);
+  box.style.color = sample ? getComputedStyle(sample).color : '';
+  var canvas = box.querySelector('canvas');
+  if (canvas) {
+    canvas.style.maxWidth = '100%';
+    canvas.style.height = 'auto';
+  }
+}
+
 function drawHrzBarPlot( data, colors){
   if (!settings.showChart) return;
 
@@ -131,18 +178,18 @@ function drawHrzBarPlot( data, colors){
 
     var boxTitle = document.createElement("h3");
     boxTitle.id = 'box_chart_title';
+    boxTitle.style.margin = '0 0 6px';
+    boxTitle.style.fontSize = '15px';
     box.appendChild(boxTitle);
-    box.style.top = "150px";
-    box.style.width = "230px";
-    box.style.height = "250px";
-    box.style.textAlign = 'center';
-    if (!Site.mountChart(box)) return;   // page not ready yet: try again on the next update
+    box.style.fontFamily = 'arial, sans-serif';
+    box.style.textAlign = 'left';
+    if (!mountChart(box)) return;   // page not ready yet: try again on the next update
     box.appendChild(chartCanvas);
 
     createdHrzBarPlot = true;
   }
   document.getElementById('box_chart_title').textContent = `Affect Distribution (n=${numTweets})`;
-  if (Site.refreshChart) Site.refreshChart(document.getElementById('box_chart_id'));
+  styleChart(document.getElementById('box_chart_id'));
 
   var canvas = document.getElementById("pieChartId");
   var context = canvas.getContext('2d');

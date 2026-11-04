@@ -1,4 +1,4 @@
-Calm Filter: a Chrome extension for X (twitter.com) that scores post affect in your feed.
+Calm Filter: a browser extension for X (twitter.com) and Bluesky that scores post affect in your feed.
 
 What it does
 ------------
@@ -33,13 +33,12 @@ All three are on by default.
 Installation
 ------------
 1. Download and unzip the folder.
-2. Open Chrome and go to `chrome://extensions`.
-3. Turn on **Developer mode** in the upper right corner.
-4. Click **Load unpacked** and select the `chrome_extension` folder.
-5. Confirm that Calm Filter appears in the list and is enabled.
-6. Open x.com. The distribution bar appears near the compose button.
+2. Chrome or Edge: go to `chrome://extensions` (or `edge://extensions`), turn on **Developer mode** in the upper right corner, click **Load unpacked** and select the `chrome_extension` folder.
+   Firefox (140 or newer): go to `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on** and select `manifest.json` in the folder. It stays until Firefox restarts.
+3. Confirm that Calm Filter appears in the list and is enabled.
+4. Open x.com or bsky.app. On X the distribution bar appears near the compose button; on Bluesky it appears in the bottom-right corner.
 
 Limitations
 -----------
-- Works only on Chrome, and only on x.com and twitter.com.
+- Works on x.com, twitter.com and bsky.app, in Chrome, Edge and Firefox. Firefox support is new and has not yet been tried in a real Firefox.
 - Scores are computed for the posts you've scrolled past during the current page visit. Reloading the page starts the count over.

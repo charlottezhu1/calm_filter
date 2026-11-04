@@ -6,17 +6,9 @@ var observer = new MutationObserver(function(mutations, observer) {
     runCALM();
 });
 
-function chartLocation(){
-    var tweetButtonExists = !!document.querySelector("[data-testid='SideNav_NewTweet_Button']");
-
-    if (tweetButtonExists ==true){
-      var chartLoc = document.querySelector("[data-testid='SideNav_NewTweet_Button']");
-    }
-    else{
-      var chartLoc = document.querySelector("[href='/settings']");
-    }
-    return chartLoc;
-}
+// Site-specific parts (post selector, text, id, chart placement) come from
+// CalmFilterSite, defined by the sites/*.js script loaded before this one.
+var Site = CalmFilterSite;
 
 var settings = { filterHan: true, showColors: true, showChart: true };
 chrome.storage.local.get(['filterHan', 'showColors', 'showChart'], function(res) {
@@ -91,20 +83,20 @@ function renderChart() {
 }
 
 function refreshAllTweets() {
-  var items = document.querySelectorAll("[data-testid='tweet']");
+  var items = document.querySelectorAll(Site.postSelector);
   for (var i = 0; i < items.length; i++) {
-    var itemId = items[i].querySelector('time')?.parentElement.href;
+    var itemId = Site.getId(items[i]);
     if (itemId && tweetSentiment[itemId]) applyAffectToTweet(items[i], tweetSentiment[itemId]);
   }
 }
 
 function runCALM() {
-    var items = document.querySelectorAll("[data-testid='tweet']");
+    var items = document.querySelectorAll(Site.postSelector);
 
     for (var i = 0; i < items.length; i++) {   // for each item box
         var item = items[i];
-        var itemText = item.querySelector("[data-testid='tweetText']")?.innerText;
-        var itemId = item.querySelector('time')?.parentElement.href;
+        var itemText = Site.getText(item);
+        var itemId = Site.getId(item);
         if (!itemId || !itemText) {
           if (!skipped.has(item)) {
             // avoiding spam of the same tweets over and over
@@ -127,7 +119,6 @@ function runCALM() {
 
 function drawHrzBarPlot( data, colors){
   if (!settings.showChart) return;
-  var tweetButton = chartLocation();
 
   if (!createdHrzBarPlot) {
     var box = document.createElement("div");
@@ -145,12 +136,12 @@ function drawHrzBarPlot( data, colors){
     box.style.width = "230px";
     box.style.height = "250px";
     box.style.textAlign = 'center';
-    tweetButton.parentElement.appendChild(box);
+    if (!Site.mountChart(box)) return;   // page not ready yet: try again on the next update
     box.appendChild(chartCanvas);
 
     createdHrzBarPlot = true;
   }
-  document.getElementById('box_chart_title').innerHTML = `Affect Distribution (n=${numTweets})`;
+  document.getElementById('box_chart_title').textContent = `Affect Distribution (n=${numTweets})`;
 
   var canvas = document.getElementById("pieChartId");
   var context = canvas.getContext('2d');

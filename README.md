@@ -1,6 +1,6 @@
 # Calm Filter
 
-A Chrome extension that scores the affect of each post in your X (twitter.com) feed, shows the mix of affect you have seen, and can hide high-arousal negative posts. Scoring uses a JavaScript port of [SentiStrength](http://sentistrength.wlv.ac.uk/) and runs entirely in your browser. The extension makes no network requests.
+A browser extension that scores the affect of each post in your X (twitter.com) or Bluesky feed, shows the mix of affect you have seen, and can hide high-arousal negative posts. Scoring uses a JavaScript port of [SentiStrength](http://sentistrength.wlv.ac.uk/) and runs entirely in your browser. The extension makes no network requests.
 
 Each post is placed in one or more of five categories:
 
@@ -15,9 +15,10 @@ Each post is placed in one or more of five categories:
 ## Install
 
 1. Download this repository (green *Code* button, then *Download ZIP*) and unzip it.
-2. In Chrome, go to `chrome://extensions` and turn on *Developer mode*.
-3. Click *Load unpacked* and select the `chrome_extension/` folder.
-4. Open [x.com](https://x.com). The distribution bar appears near the compose button.
+2. Load the `chrome_extension/` folder:
+   - **Chrome or Edge:** go to `chrome://extensions` (or `edge://extensions`), turn on *Developer mode*, click *Load unpacked*, and select the folder.
+   - **Firefox (140 or newer):** go to `about:debugging#/runtime/this-firefox`, click *Load Temporary Add-on*, and select `manifest.json` in the folder. It stays until Firefox restarts.
+3. Open [x.com](https://x.com) or [bsky.app](https://bsky.app). On X the distribution bar appears near the compose button; on Bluesky it appears in the bottom-right corner.
 
 Click the Calm Filter icon to turn on or off hiding HAN posts, border colors, and the distribution bar. See [chrome_extension/README.md](chrome_extension/README.md) for how the scoring works.
 
@@ -32,7 +33,7 @@ node tools/diff_vs_java.js fuzz 20000
 ## Repository layout
 
 ```
-chrome_extension/   the extension (this is all you need to use it)
+chrome_extension/   the extension (this is all you need to use it; sites/ holds the X and Bluesky code)
 tools/              scripts that build the scorer's data and check it against the Java version
 third_party/        SentiStrength English word lists (October 2019)
 analysis/           analysis scripts and checks against study data (data not included)

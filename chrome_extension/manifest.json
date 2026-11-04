@@ -14,7 +14,8 @@
     "permissions": ["storage"],
     "host_permissions": [
         "*://*.twitter.com/*",
-        "*://*.x.com/*"
+        "*://*.x.com/*",
+        "*://*.bsky.app/*"
     ],
 
     "content_scripts": [
@@ -26,6 +27,19 @@
             "js": [
                 "sentistrength_data.js",
                 "sentistrength.js",
+                "sites/x.js",
+                "content.js"
+            ],
+            "run_at": "document_end"
+        },
+        {
+            "matches": [
+                "*://*.bsky.app/*"
+            ],
+            "js": [
+                "sentistrength_data.js",
+                "sentistrength.js",
+                "sites/bluesky.js",
                 "content.js"
             ],
             "run_at": "document_end"
@@ -34,5 +48,17 @@
     "action": {
         "default_icon": "icon/image128.png",
         "default_popup": "settings.html"
+    },
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "calm-filter@charlottezhu1.github.io",
+            "strict_min_version": "140.0",
+            "data_collection_permissions": {
+                "required": ["none"]
+            }
+        },
+        "gecko_android": {
+            "strict_min_version": "142.0"
+        }
     }
 }

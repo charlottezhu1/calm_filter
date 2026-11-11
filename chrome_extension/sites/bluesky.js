@@ -1,5 +1,6 @@
 // Bluesky (bsky.app): how to find posts, and the button the chart goes under.
 var CalmFilterSite = {
+  key: 'bluesky',
   postSelector: "[data-testid^='feedItem-by-']",
   textSelector: "[data-testid='postText']",
 

@@ -12,6 +12,14 @@
     .slider::before { content: ""; position: absolute; width: 18px; height: 18px; left: 2px; top: 2px; background: #fff; border-radius: 50%; transition: transform .2s; }
     input:checked + .slider { background: #1da1f2; }
     input:checked + .slider::before { transform: translateX(18px); }
+    h3.export { margin-top: 14px; }
+    #counterList label { justify-content: flex-start; gap: 8px; padding: 5px 0; border: none; }
+    #counterList .n { color: #777; margin-left: auto; white-space: nowrap; }
+    .buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .buttons button { flex: 1 1 auto; padding: 5px 4px; cursor: pointer; white-space: nowrap; }
+    #copyJson { flex-basis: 100%; }
+    .buttons button:disabled { cursor: default; }
+    #status { margin-top: 6px; color: #777; font-size: 12px; min-height: 14px; }
   </style>
 </head>
 <body>
@@ -19,6 +27,15 @@
   <label>Hide HAN posts <span class="switch"><input type="checkbox" id="filterHan"><span class="slider"></span></span></label>
   <label>Color post borders <span class="switch"><input type="checkbox" id="showColors"><span class="slider"></span></span></label>
   <label>Affect distribution <span class="switch"><input type="checkbox" id="showChart"><span class="slider"></span></span></label>
+  <h3 class="export">Export distributions</h3>
+  <div id="counterList"></div>
+  <div class="buttons">
+    <button id="downloadPng">PNG</button>
+    <button id="downloadJson">JSON</button>
+    <button id="copyJson">Copy JSON</button>
+  </div>
+  <div id="status"></div>
+  <script src="chart.js"></script>
   <script src="settings.js"></script>
 </body>
 </html>

@@ -1,5 +1,6 @@
 // X (twitter.com): how to find posts, and the button the chart goes under.
 var CalmFilterSite = {
+  key: 'x',
   postSelector: "[data-testid='tweet']",
   textSelector: "[data-testid='tweetText']",
 

@@ -20,7 +20,7 @@ Each post is placed in one or more of five categories:
    - **Firefox (140 or newer):** go to `about:debugging#/runtime/this-firefox`, click *Load Temporary Add-on*, and select `manifest.json` in the folder. It stays until Firefox restarts.
 3. Open [x.com](https://x.com) or [bsky.app](https://bsky.app). The distribution bar appears under the Post (X) or New post (Bluesky) button, and moves to the bottom-right corner when the window is too narrow.
 
-Click the Calm Filter icon to turn on or off hiding HAN posts, border colors, and the distribution bar. See [chrome_extension/README.md](chrome_extension/README.md) for how the scoring works.
+Click the Calm Filter icon to turn on or off hiding HAN posts, border colors, and the distribution box, and to export. The box keeps up to 3 counters: the first, *My Browsing Affect Distribution*, follows you through every feed. **Add** starts up to two more (for a particular feed), each running one counts every post you see, and **⏸** pauses one. A small switcher swaps between them, double-clicking the name renames one, and **✕** deletes one right away. You can delete them all and add one back later. Counters are saved until you delete them, and the popup's *Export distributions* section saves them as PNG or JSON, or copies the JSON. See [chrome_extension/README.md](chrome_extension/README.md) for the details and for how the scoring works.
 
 ## Verify the scorer
 

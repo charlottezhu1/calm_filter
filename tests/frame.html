@@ -1,0 +1,57 @@
+<!doctype html>
+<meta charset="utf-8">
+<!-- One fake X or Bluesky page. Loads the extension's real content scripts, in the order manifest.json
+     lists them for this site, against a stand-in for the chrome.* API. Opened in an iframe by suite.js.
+     ?site=x|bluesky   &nav=narrow (left column too thin for the chart) -->
+<body>
+<nav><div id="col" style="width:240px"><a id="anchor">Post</a></div></nav>
+<div id="feed"></div>
+<script src="chrome-stub.js"></script>
+<script>
+var params = new URLSearchParams(location.search);
+var site = params.get('site');
+window.errors = [];
+addEventListener('error', function(e) { window.errors.push(e.message); });
+
+if (params.get('nav') === 'narrow') document.getElementById('col').style.width = '100px';
+var anchor = document.getElementById('anchor');
+if (site === 'x') anchor.setAttribute('data-testid', 'SideNav_NewTweet_Button');
+else anchor.setAttribute('aria-label', 'New post');
+
+// Posts shaped like the real sites' markup (only the parts the extension reads).
+window.addPost = function(id, text) {
+  var d = document.createElement(site === 'x' ? 'article' : 'div');
+  if (site === 'x') {
+    d.setAttribute('data-testid', 'tweet');
+    d.innerHTML = '<a href="https://x.com/u/status/' + id + '"><time>t</time></a><div data-testid="tweetText"></div>';
+    if (text !== null) d.querySelector('[data-testid=tweetText]').textContent = text;
+  } else {
+    d.setAttribute('data-testid', 'feedItem-by-u.bsky.social');
+    d.innerHTML = '<a href="/profile/u.bsky.social/post/' + id + '">l</a><div data-testid="postText"></div>';
+    if (text !== null) d.querySelector('[data-testid=postText]').textContent = text;
+  }
+  document.getElementById('feed').appendChild(d);
+  return d;
+};
+window.postElements = function() {
+  return document.querySelectorAll(site === 'x' ? "[data-testid='tweet']" : "[data-testid^='feedItem-by-']");
+};
+
+// Load the scripts exactly as the manifest lists them for this site.
+fetch('../chrome_extension/manifest.json').then(function(r) { return r.json(); }).then(function(manifest) {
+  var pattern = site === 'x' ? '*://*.x.com/*' : '*://*.bsky.app/*';
+  var block = manifest.content_scripts.filter(function(c) { return c.matches.indexOf(pattern) !== -1; })[0];
+  if (!block) throw new Error('manifest has no content script for ' + pattern);
+  return block.js.reduce(function(chain, file) {
+    return chain.then(function() {
+      return new Promise(function(resolve, reject) {
+        var s = document.createElement('script');
+        s.src = '../chrome_extension/' + file;
+        s.onload = resolve;
+        s.onerror = function() { reject(new Error('could not load ' + file)); };
+        document.body.appendChild(s);
+      });
+    });
+  }, Promise.resolve());
+}).then(function() { window.ready = true; }, function(e) { window.loadError = e.message; window.ready = true; });
+</script>

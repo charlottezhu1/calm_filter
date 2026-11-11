@@ -1,6 +1,6 @@
-const SWITCHES = ['filterHan', 'showColors', 'showChart'];
+const SWITCHES = ['filterHan', 'showColors', 'showChart', 'scoreImages'];
 
-chrome.storage.local.get({ filterHan: true, showColors: true, showChart: true }, function(saved) {
+chrome.storage.local.get({ filterHan: true, showColors: true, showChart: true, scoreImages: false }, function(saved) {
   SWITCHES.forEach(function(id) {
     document.getElementById(id).checked = saved[id];
   });

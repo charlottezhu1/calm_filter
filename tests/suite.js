@@ -3,6 +3,7 @@
 // extension's behavior, not X's or Bluesky's current markup.
 
 window.__store = { data: {}, listeners: [] };
+window.__images = { table: {}, fail: false, delay: 30, calls: [] };
 
 var NEG = 'I hate this terrible awful war';      // HAN
 var POS = 'I love this wonderful day';           // HAP
@@ -24,6 +25,7 @@ async function until(fn, ms) {
 }
 
 function resetStore(seed) {
+  window.__images = { table: {}, fail: false, delay: 30, calls: [] };
   window.__store.data = JSON.parse(JSON.stringify(seed || {}));
   window.__store.listeners = [];
 }
@@ -47,10 +49,10 @@ async function openPage(site, opts) {
     title: function() { return page.box().querySelector('#box_chart_title').textContent.replace(/\s+/g, ' ').trim(); },
     counters: function() { return w.counters; },
     posts: function() { return w.postElements(); },
-    add: function(id, text) { return w.addPost(id, text); },
+    add: function(id, text, images) { return w.addPost(id, text, images); },
     // add posts and wait for the extension to notice
     feed: async function(list) {
-      list.forEach(function(p) { w.addPost(p[0], p[1]); });
+      list.forEach(function(p) { w.addPost(p[0], p[1], p[2]); });
       await wait(60);
     },
     save: async function() { w.saveCounters(); await wait(40); },
@@ -519,6 +521,91 @@ function popupTests() {
   ];
 }
 
+
+// ---- image scoring (the worker is faked by chrome-stub.js) ----
+var HAN_IMG = { v: 1.8, a: 5.0 };    // negative, high arousal
+var HAP_IMG = { v: 5.8, a: 4.6 };    // positive, high arousal
+var NEU_IMG = { v: 4.0, a: 3.0 };    // neutral valence
+
+function imageTests(site) {
+  var T = function(name, fn) { return test(site + ' images', name, fn); };
+  var counts = function(p) { return p.counters()[0].counts; };
+  return [
+    T('images are ignored and nothing is requested while the switch is off', async function() {
+      var p = await openPage(site);
+      window.__images.table = { pic1: HAN_IMG };
+      await p.feed([[1, POS, ['pic1']]]);
+      await wait(100);
+      eq(window.__images.calls.length, 0, 'requests');
+      eq([counts(p).HAP, counts(p).HAN], [1, 0]);
+    }),
+    T('an image only post is counted once its image is scored, and HAN is hidden', async function() {
+      var p = await openPage(site);
+      await p.setSetting({ scoreImages: true });
+      window.__images.table = { pic1: HAN_IMG };
+      p.add(1, null, ['pic1']);
+      await wait(20);
+      eq(p.counters()[0].n, 0, 'not counted before the score arrives');
+      await wait(150);
+      eq([p.counters()[0].n, counts(p).HAN], [1, 1]);
+      eq(p.posts()[0].style.display, 'none');
+      eq(p.w.errors, [], 'script errors');
+    }),
+    T('a late image score moves the post to its new category without a double count', async function() {
+      var p = await openPage(site);
+      await p.setSetting({ scoreImages: true });
+      window.__images.table = { pic1: HAN_IMG };
+      window.__images.delay = 200;
+      await p.feed([[1, NEU, ['pic1']]]);
+      eq([p.counters()[0].n, counts(p).NEU, counts(p).HAN], [1, 1, 0], 'counted by text first');
+      await wait(250);
+      eq([p.counters()[0].n, counts(p).NEU, counts(p).HAN], [1, 0, 1], 'then corrected by the image');
+    }),
+    T('any negative or positive part decides, NEU needs every part to be neutral', async function() {
+      var p = await openPage(site);
+      await p.setSetting({ scoreImages: true });
+      window.__images.table = { han: HAN_IMG, hap: HAP_IMG, neu: NEU_IMG };
+      await p.feed([[1, POS, ['han']], [2, NEU, ['neu']], [3, NEU, ['hap']]]);
+      await wait(200);
+      var c = counts(p);
+      eq([c.HAN, c.HAP, c.NEU], [1, 2, 1], 'counts');
+      eq(p.counters()[0].n, 3);
+    }),
+    T('a failed image is ignored and the text still counts', async function() {
+      var p = await openPage(site);
+      await p.setSetting({ scoreImages: true });
+      window.__images.fail = true;
+      await p.feed([[1, POS, ['pic1']], [2, null, ['pic2']]]);
+      await wait(200);
+      eq([p.counters()[0].n, counts(p).HAP], [1, 1], 'text post counted, image only post not');
+      eq(p.w.errors, [], 'script errors');
+    }),
+    T('the same image is requested once', async function() {
+      var p = await openPage(site);
+      await p.setSetting({ scoreImages: true });
+      window.__images.table = { pic1: HAP_IMG };
+      await p.feed([[1, null, ['pic1']]]);
+      await wait(100);
+      await p.feed([[2, null, ['pic1']]]);
+      await wait(100);
+      var asked = [].concat.apply([], window.__images.calls).filter(function(u) { return u.indexOf('pic1') !== -1; });
+      eq(asked.length, 1, 'requests for pic1');
+      eq(p.counters()[0].n, 2);
+    }),
+    T('only allowed image hosts are requested, in batches of at most 4', async function() {
+      var p = await openPage(site);
+      await p.setSetting({ scoreImages: true });
+      window.__images.table = { p0: NEU_IMG, p1: NEU_IMG, p2: NEU_IMG, p3: NEU_IMG, p4: NEU_IMG, p5: NEU_IMG };
+      var list = [];
+      for (var i = 0; i < 6; i++) list.push([i + 1, null, ['p' + i]]);
+      await p.feed(list);
+      await wait(400);
+      window.__images.calls.forEach(function(b) { ok(b.length <= 4, 'batch of ' + b.length); });
+      eq(p.counters()[0].n, 6);
+    })
+  ];
+}
+
 // ---- X and Bluesky never mix ----
 function separationTests() {
   var T = function(name, fn) { return test('x vs bluesky', name, fn); };
@@ -581,7 +668,7 @@ function separationTests() {
 
 // ---- run everything ----
 async function runAll() {
-  var tests = pageTests('x').concat(pageTests('bluesky'), separationTests(), popupTests());
+  var tests = pageTests('x').concat(pageTests('bluesky'), imageTests('x'), imageTests('bluesky'), separationTests(), popupTests());
   for (var i = 0; i < tests.length; i++) await runOne(tests[i]);
   var passed = results.filter(function(r) { return r.ok; }).length;
   document.getElementById('summary').textContent = passed + ' of ' + results.length + ' passed';

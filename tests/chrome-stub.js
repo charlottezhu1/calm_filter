@@ -4,7 +4,30 @@
   var shared = parent.__store;
   function clone(v) { return v === undefined ? undefined : JSON.parse(JSON.stringify(v)); }
   window.chrome = {
-    runtime: { id: 'test-extension', lastError: undefined },
+    runtime: {
+      id: 'test-extension',
+      lastError: undefined,
+      // stands in for the image scoring worker: parent.__images = { table: {urlPart: {v, a}}, fail, delay, calls }
+      sendMessage: function(msg, cb) {
+        var im = parent.__images;
+        im.calls.push(msg.urls.slice());
+        setTimeout(function() {
+          if (im.fail) {
+            window.chrome.runtime.lastError = { message: 'no worker' };
+            cb(undefined);
+            window.chrome.runtime.lastError = undefined;
+            return;
+          }
+          cb({
+            scores: msg.urls.map(function(u) {
+              var key = Object.keys(im.table).filter(function(k) { return u.indexOf(k) !== -1; })[0];
+              return key ? im.table[key] : null;
+            }),
+            cutoffs: { neg: 3.5, pos: 4.5, high: 3.75 }
+          });
+        }, im.delay || 30);
+      }
+    },
     storage: {
       local: {
         // keys: a name, a list of names, or an object of defaults (like the real API)

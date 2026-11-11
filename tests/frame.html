@@ -19,7 +19,7 @@ if (site === 'x') anchor.setAttribute('data-testid', 'SideNav_NewTweet_Button');
 else anchor.setAttribute('aria-label', 'New post');
 
 // Posts shaped like the real sites' markup (only the parts the extension reads).
-window.addPost = function(id, text) {
+window.addPost = function(id, text, images) {
   var d = document.createElement(site === 'x' ? 'article' : 'div');
   if (site === 'x') {
     d.setAttribute('data-testid', 'tweet');
@@ -30,6 +30,18 @@ window.addPost = function(id, text) {
     d.innerHTML = '<a href="/profile/u.bsky.social/post/' + id + '">l</a><div data-testid="postText"></div>';
     if (text !== null) d.querySelector('[data-testid=postText]').textContent = text;
   }
+  (images || []).forEach(function(name) {
+    var img = document.createElement('img');
+    if (site === 'x') {
+      var box = document.createElement('div');
+      box.setAttribute('data-testid', 'tweetPhoto');
+      img.src = 'https://pbs.twimg.com/media/' + name + '?format=jpg&name=large';
+      box.appendChild(img); d.appendChild(box);
+    } else {
+      img.src = 'https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:x/' + name + '@jpeg';
+      d.appendChild(img);
+    }
+  });
   document.getElementById('feed').appendChild(d);
   return d;
 };

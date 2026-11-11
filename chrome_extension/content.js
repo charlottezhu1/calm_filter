@@ -5,6 +5,8 @@ var observer = new MutationObserver(function(mutations, observer) {
     // fired when a mutation occurs
     runCALM();
 });
+// a batch of image scores arrived: run again so the posts waiting for them get their affect
+if (typeof CalmImages !== 'undefined') CalmImages.setOnDone(function() { runCALM(); });
 
 // Site-specific parts (post selector, text selector, post id, and the button the
 // chart goes under) come from CalmFilterSite, defined by the sites/*.js script
@@ -18,7 +20,7 @@ var KEYS = {
   writer: 'countersWriter:' + Site.key
 };
 
-var settings = { filterHan: true, showColors: true, showChart: true };
+var settings = { filterHan: true, showColors: true, showChart: true, scoreImages: false };
 
 // Up to MAX_COUNTERS named counters. Every running counter counts every post the user sees,
 // wherever they browse; pausing a counter stops it adding more. The "active" counter is only
@@ -34,7 +36,7 @@ var activeId = null;
 var countersLoaded = false;
 var writerId = Math.random().toString(36).slice(2);   // tells this tab's own saves from another tab's
 
-chrome.storage.local.get(['filterHan', 'showColors', 'showChart', KEYS.counters, KEYS.active], function(res) {
+chrome.storage.local.get(['filterHan', 'showColors', 'showChart', 'scoreImages', KEYS.counters, KEYS.active], function(res) {
   Object.keys(settings).forEach(function(key) {
     if (res[key] !== undefined) settings[key] = res[key];
   });
@@ -66,6 +68,7 @@ window.addEventListener('resize', function() {
 });
 //////////////////////////////////////////////////////////////////////////////
 var tweetSentiment = {};
+var textSentiment = {};
 var skipped = new Set();
 
 //////////////// Counters ////////////////////////////////////////////////////
@@ -127,15 +130,41 @@ function activeCounter() {
   return counters.filter(function(c) { return c.id === activeId; })[0];
 }
 
+// Flags of a post as a number, stored with its id so a later image score can correct the count.
+// 256 marks "flags known"; the old value 1 means unknown and is never corrected.
+function flagsOf(affect) {
+  var n = 256;
+  CALM_CATEGORIES.forEach(function(cat, i) { if (affect[cat.key]) n += 1 << i; });
+  return n;
+}
+
 // Counts the post into every running counter that has not seen it yet.
 // Returns true when at least one counter changed.
 function countPost(itemId, affect) {
   var changed = false;
   counters.forEach(function(c) {
     if (!c.running || c.ids[itemId]) return;
-    c.ids[itemId] = 1;
+    c.ids[itemId] = flagsOf(affect);
     c.n += 1;
     CALM_CATEGORIES.forEach(function(cat) { if (affect[cat.key]) c.counts[cat.key] += 1; });
+    changed = true;
+  });
+  return changed;
+}
+
+// An image score changed a post that was already counted: move it to its new categories.
+function recountPost(itemId, affect) {
+  var changed = false;
+  var now = flagsOf(affect);
+  counters.forEach(function(c) {
+    var was = c.ids[itemId];
+    if (!(was >= 256) || was === now) return;
+    CALM_CATEGORIES.forEach(function(cat, i) {
+      var bit = 1 << i;
+      if ((was & bit) && !(now & bit)) c.counts[cat.key] = Math.max(0, c.counts[cat.key] - 1);
+      if (!(was & bit) && (now & bit)) c.counts[cat.key] += 1;
+    });
+    c.ids[itemId] = now;
     changed = true;
   });
   return changed;
@@ -272,7 +301,8 @@ function runCALM() {
         var item = items[i];
         var itemText = item.querySelector(Site.textSelector)?.innerText;
         var itemId = Site.getId(item);
-        if (!itemId || !itemText) {
+        var urls = settings.scoreImages && Site.getImages && window.CalmImages ? Site.getImages(item) : [];
+        if (!itemId || (!itemText && !urls.length)) {
           if (!skipped.has(item)) {
             // avoiding spam of the same tweets over and over
             skipped.add(item);
@@ -280,10 +310,19 @@ function runCALM() {
           continue
         }
 
-        if (!tweetSentiment[itemId]) tweetSentiment[itemId] = getSentiment(itemText);
+        if (itemText && !textSentiment[itemId]) textSentiment[itemId] = getSentiment(itemText);
+        var scored = [];
+        urls.forEach(function(url) {
+          var s = CalmImages.get(url);
+          if (s === undefined) CalmImages.want(url);
+          else if (s) scored.push(CalmImages.mapImageAffect(s));
+        });
+        var affect = urls.length ? CalmImages.mergeAffect(textSentiment[itemId], scored) : textSentiment[itemId];
+        if (!affect) continue;   // image only post, still waiting for its score
+        tweetSentiment[itemId] = affect;
         // redraw the border every time (React can re-render the node)
-        applyAffectToTweet(item, tweetSentiment[itemId]);
-        if (countPost(itemId, tweetSentiment[itemId])) changed = true;
+        applyAffectToTweet(item, affect);
+        if (countPost(itemId, affect) || recountPost(itemId, affect)) changed = true;
     }
 
     if (changed) scheduleSave();

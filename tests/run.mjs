@@ -6,6 +6,7 @@
 //
 //   node tests/run.mjs --serve    just serve the browser tests, to open the printed link in any browser
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
@@ -31,9 +32,60 @@ function assert(cond, msg) { if (!cond) throw new Error(msg); }
 // ---------------------------------------------------------------- 1. files and manifest
 const manifest = JSON.parse(fs.readFileSync(path.join(EXT, 'manifest.json'), 'utf8'));
 
-check('files', 'manifest is Manifest V3 with only the storage permission', () => {
+check('files', 'manifest is Manifest V3 with only the storage and offscreen permissions', () => {
   assert(manifest.manifest_version === 3, 'not MV3');
-  assert(JSON.stringify(manifest.permissions) === '["storage"]', 'permissions: ' + JSON.stringify(manifest.permissions));
+  assert(JSON.stringify(manifest.permissions) === '["storage","offscreen"]', 'permissions: ' + JSON.stringify(manifest.permissions));
+});
+check('image', 'manifest has the image hosts, the worker and a CSP that allows wasm', () => {
+  for (const h of ['https://pbs.twimg.com/*', 'https://cdn.bsky.app/*']) assert(manifest.host_permissions.includes(h), 'no host permission ' + h);
+  assert(manifest.background && manifest.background.service_worker === 'image_affect/background.js', 'no service worker');
+  assert(fs.existsSync(path.join(EXT, manifest.background.service_worker)), 'service worker missing');
+  const csp = manifest.content_security_policy && manifest.content_security_policy.extension_pages;
+  assert(csp && csp.includes("'wasm-unsafe-eval'") && csp.includes("'self'") && !csp.includes("'unsafe-eval'"), 'csp: ' + csp);
+});
+check('image', 'offscreen page loads ort, embed.js and offscreen.js in order, and the files exist', () => {
+  const dir = path.join(EXT, 'image_affect');
+  const html = fs.readFileSync(path.join(dir, 'offscreen.html'), 'utf8');
+  const srcs = [...html.matchAll(/src="([^"]+)"/g)].map((m) => m[1]);
+  assert(JSON.stringify(srcs) === '["ort/ort.wasm.min.js","embed.js","offscreen.js"]', 'scripts: ' + srcs);
+  for (const f of [...srcs, 'ort/ort-wasm-simd-threaded.mjs', 'ort/ort-wasm-simd-threaded.wasm', 'weights.json']) assert(fs.existsSync(path.join(dir, f)), f + ' missing');
+});
+check('image', 'weights.json has the head, matching shapes and category cutoffs', () => {
+  const w = JSON.parse(fs.readFileSync(path.join(EXT, 'image_affect', 'weights.json'), 'utf8'));
+  assert(w.mean.length === 512 && w.std.length === 512, 'mean/std size');
+  assert(w.weights.length === 2 && w.weights.every((r) => r.length === 512), 'weights shape');
+  assert(w.biases.length === 2 && w.std.every((s) => s > 0), 'biases or std');
+  assert(w.cutoffs && w.cutoffs.neg < w.cutoffs.pos, 'cutoffs');
+  const model = path.join(EXT, 'image_affect', 'model', 'clip_vit_b32_int8.onnx');
+  if (fs.existsSync(model)) assert(crypto.createHash('sha256').update(fs.readFileSync(model)).digest('hex') === w.model_sha256, 'model does not match the weights');
+});
+check('image', 'image categories: valence and arousal map to HAN, LAN, HAP, LAP, NEU', () => {
+  const c = vm.createContext({ location: { href: 'https://x.com/' }, URL, chrome: {} });
+  vm.runInContext(fs.readFileSync(path.join(EXT, 'image_affect', 'page.js'), 'utf8') + '\n;this.I = CalmImages;', c);
+  const m = (v, a) => c.I.mapImageAffect({ v, a });
+  const flags = (x) => ['HAN', 'LAN', 'HAP', 'LAP', 'NEU'].filter((k) => x[k]).join('');
+  assert(flags(m(2, 5)) === 'HAN' && flags(m(2, 3)) === 'LAN', 'negative');
+  assert(flags(m(6, 5)) === 'HAP' && flags(m(6, 3)) === 'LAP', 'positive');
+  assert(flags(m(4, 5)) === 'NEU' && flags(m(4, 2)) === 'NEU', 'neutral');
+});
+check('image', 'merge: any part sets HAN, LAN, HAP, LAP; NEU needs every part neutral; no parts gives nothing', () => {
+  const c = vm.createContext({ location: { href: 'https://x.com/' }, URL, chrome: {} });
+  vm.runInContext(fs.readFileSync(path.join(EXT, 'image_affect', 'page.js'), 'utf8') + '\n;this.I = CalmImages;', c);
+  const A = (k) => ({ HAN: k === 'HAN', LAN: k === 'LAN', HAP: k === 'HAP', LAP: k === 'LAP', NEU: k === 'NEU', positive: 1, negative: -1 });
+  const f = (x) => x && ['HAN', 'LAN', 'HAP', 'LAP', 'NEU'].filter((k) => x[k]).join('');
+  assert(c.I.mergeAffect(null, []) === null, 'empty');
+  assert(f(c.I.mergeAffect(A('NEU'), [A('HAN')])) === 'HAN', 'neutral text, negative image');
+  assert(f(c.I.mergeAffect(A('NEU'), [A('NEU'), A('NEU')])) === 'NEU', 'all neutral');
+  const mixed = c.I.mergeAffect(A('HAP'), [A('HAN')]);
+  assert(mixed.HAN && mixed.HAP && !mixed.NEU, 'mixed flags');
+  assert(f(c.I.mergeAffect(null, [A('LAP')])) === 'LAP', 'image only');
+});
+check('image', 'only https image hosts are scorable and X sizes are normalized', () => {
+  const c = vm.createContext({ location: { href: 'https://x.com/' }, URL, chrome: { runtime: { sendMessage() {} } } });
+  vm.runInContext(fs.readFileSync(path.join(EXT, 'image_affect', 'page.js'), 'utf8') + '\n;this.I = CalmImages;', c);
+  assert(c.I.get('https://evil.example/a.jpg') === null, 'foreign host');
+  assert(c.I.get('http://pbs.twimg.com/media/a.jpg') === null, 'http');
+  assert(c.I.get('https://pbs.twimg.com/media/a?format=jpg&name=large') === undefined, 'allowed host starts unknown');
 });
 check('files', 'popup and icons exist', () => {
   assert(fs.existsSync(path.join(EXT, manifest.action.default_popup)), 'popup missing');
@@ -52,14 +104,16 @@ for (const site of SITES) {
     assert(block, 'no content script matches ' + site.match);
     for (const f of block.js) assert(fs.existsSync(path.join(EXT, f)), f + ' missing');
     const at = (f) => block.js.indexOf(f);
-    for (const f of ['sentistrength_data.js', 'sentistrength.js', 'chart.js', site.siteFile, 'content.js']) assert(at(f) !== -1, f + ' is not listed');
-    const order = ['sentistrength_data.js', 'sentistrength.js', 'chart.js', site.siteFile, 'content.js'].map(at);
+    const need = ['sentistrength_data.js', 'sentistrength.js', 'chart.js', site.siteFile, 'image_affect/page.js', 'content.js'];
+    for (const f of need) assert(at(f) !== -1, f + ' is not listed');
+    const order = need.map(at);
     assert(order.every((v, i) => i === 0 || v > order[i - 1]), 'wrong order: ' + block.js.join(', '));
     assert(JSON.stringify(manifest.host_permissions).includes(site.match), 'no host permission for ' + site.match);
   });
 }
 check('files', 'every extension script is valid JavaScript', () => {
-  const files = ['content.js', 'chart.js', 'settings.js', 'sentistrength.js', 'sites/x.js', 'sites/bluesky.js'];
+  const files = ['content.js', 'chart.js', 'settings.js', 'sentistrength.js', 'sites/x.js', 'sites/bluesky.js',
+    'image_affect/page.js', 'image_affect/background.js', 'image_affect/offscreen.js', 'image_affect/embed.js'];
   for (const f of files) new vm.Script(fs.readFileSync(path.join(EXT, f), 'utf8'), { filename: f });
 });
 check('files', 'the popup page loads chart.js before settings.js', () => {

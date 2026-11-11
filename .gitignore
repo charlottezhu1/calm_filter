@@ -10,3 +10,8 @@ analysis/tests/**/*.html
 
 CLAUDE.md
 IMAGE_AFFECT_PLAN.md
+
+# Image affect trial: local inputs and notes
+image_part/
+chrome_extension/image_affect/model/
+IMAGE_AFFECT_TODO.md

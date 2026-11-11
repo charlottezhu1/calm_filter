@@ -1,5 +1,7 @@
 """Embed OASIS with the int8 CLIP vision model (onnxruntime) and fit the ridge head.
-Usage: python3 analysis/image_affect/fit_head.py [--emb out/emb_py.npy]
+Usage: python3 analysis/image_affect/fit_head.py [--browser]
+Default embeds with onnxruntime (Python). --browser uses image_part/out/emb_browser.json from embed_in_browser.mjs
+and writes the shipped chrome_extension/image_affect/weights.json (with category cutoffs).
 """
 import json, os, sys, hashlib
 import numpy as np, pandas as pd
@@ -27,8 +29,11 @@ def prep(path):
 df = pd.read_csv(os.path.join(OAS, 'OASIS.csv'))
 df.columns = [c.strip() for c in df.columns]
 names = df['Theme'].str.strip().tolist()
+BROWSER = '--browser' in sys.argv
 embp = os.path.join(OUT, 'emb_py.npy')
-if os.path.exists(embp):
+if BROWSER:
+    E = np.array(json.load(open(os.path.join(OUT, 'emb_browser.json'))))
+elif os.path.exists(embp):
     E = np.load(embp)
 else:
     sess = ort.InferenceSession(MODEL, providers=['CPUExecutionProvider'])
@@ -61,7 +66,6 @@ best = max(res, key=lambda a: res[a][0][0] + res[a][0][1])
 print('best alpha', best)
 
 # reliability ceiling from raw ratings (split half, Spearman-Brown)
-raw = pd.read_csv(os.path.join(R, '6pnd7-osfstorage-archive', 'Data files', 'OASIS_data.csv'), lineterminator='\r') if False else None
 
 P, r = cv(best, KFold(10, shuffle=True, random_state=0))
 print('final CV r', r, 'MAE', np.abs(P - Y).mean(0))
@@ -71,5 +75,10 @@ w = {'version': 1, 'model_sha256': hashlib.sha256(open(MODEL, 'rb').read()).hexd
      'alpha': best, 'mean': mu.tolist(), 'std': sd.tolist(),
      'weights': m.coef_.tolist(), 'biases': m.intercept_.tolist(),
      'cv_r': {'valence': r[0], 'arousal': r[1]}}
-json.dump(w, open(os.path.join(OUT, 'weights_py.json'), 'w'))
+if BROWSER:
+    w['version'] = 2; w['source'] = 'browser_embeddings'
+    w['cutoffs'] = {'neg': 3.5, 'pos': 4.5, 'high': 3.75}   # see calibrate.py
+    json.dump(w, open(os.path.join('chrome_extension', 'image_affect', 'weights.json'), 'w'))
+else:
+    json.dump(w, open(os.path.join(OUT, 'weights_py.json'), 'w'))
 np.save(os.path.join(OUT, 'cv_pred.npy'), P)
